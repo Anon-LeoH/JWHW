@@ -22,16 +22,19 @@ Use the below command to setup the environment.
 $ sudo apt-get update
 $ sudo apt-get install python-gtk\*
 $ sudo apt-get install python-tk
+````
 
 ###Useage
 
 ####Server
 ````bash
 $ python server.py
+````
 
 ####Client Version1
 ````bash
 $ python client.py
+````
 
 As in the client UI view, input _":ul"_ to get the user list, and _":chat xxx
 sth."_ to send sth. to xxx. Type something else to broadcast it.
@@ -39,6 +42,7 @@ sth."_ to send sth. to xxx. Type something else to broadcast it.
 ####Client Version2
 ````bash
 $ python client.py
+````
 
 As in the client UI view, type something to broadcast it.
 Input _":ul"_ to get the user list, and _":chat xxx"_ to open the chat window.
