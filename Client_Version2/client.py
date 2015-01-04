@@ -67,6 +67,8 @@ class chatPage(object):
         return area, swindow
 
     def insertOneMsg(self, txtArea, msg, name):
+        if msg == "" or msg.strip() == "":
+            return
         msg = get_time() + " " + name + ": " + msg
         buf = txtArea.get_buffer()
         mark = buf.get_mark("end")
