@@ -16,9 +16,6 @@ pygtk.require('2.0')
 import gtk
 import time
 
-WaitChatPort = 51006
-defualtChatPort = 52006
-
 def get_time():
     tmp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
     tmp = "[" + tmp + "]"
