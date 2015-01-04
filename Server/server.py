@@ -16,6 +16,7 @@ class ChatServer(object):
 
     def __init__(self, ui, address='', port=5555):
         self.ui = ui
+        self.msgs = {}
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.bind((address, port))
         self.s.setblocking(0)  # 非阻塞IO
@@ -77,6 +78,13 @@ class ChatServer(object):
                                               msg_obj['password'])
                             s.send(json.dumps(resp).encode('utf8'))
 
+                        elif msg_obj['type'] == 'msgs':
+                             if msg_obj['username'] in self.msgs and self.msgs[msg_obj['username']] != None:
+                                 tmp = { "errno": 4,
+                                         "msgs": str(self.msgs[msg_obj['username']])}
+                                 s.send(json.dumps(tmp).encode('utf8'))
+                                 self.msgs[msg_obj['username']] != None
+
                         elif msg_obj['type'] == 'register':  # 用户注册
                             resp = self.register(s,
                                                  msg_obj['username'],
@@ -102,6 +110,14 @@ class ChatServer(object):
                                             "msg": msg }
                                     t.send(json.dumps(tmp).encode('utf8'))
                                     break
+                            else:
+                                if uname not in self.msgs or self.msgs[uname] == None:
+                                    self.msgs[uname] = []
+                                msg = msg_obj['msg']
+                                tmp = { "from": fr,
+                                        "msg": msg,
+                                        "time": msg_obj['time']}
+                                self.msgs[uname].append(tmp)
                         
                         else:  # 用户发送消息
                             if s not in self.users or \
@@ -141,6 +157,7 @@ class ChatServer(object):
 
     def disconnect(self, R, W, s):
         user = self.users.pop(s, None)
+        self.msgs[user[1]] = []
         if user is not None:
             self.ui.removeUser(user[1])  # user[1]为用户名
             self.ui.info('Logout.', user[1])

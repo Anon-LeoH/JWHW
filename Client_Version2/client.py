@@ -16,97 +16,22 @@ pygtk.require('2.0')
 import gtk
 import time
 
-def get_time():
-    tmp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
-    tmp = "[" + tmp + "]"
-    return tmp
-
-class chatPage(object):
-    def __init__(self, parent, name):
-        self.name = name
-        self.on = False
-        self.parent = parent
-        # main window part
-        self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        self.window.set_title("Chat with " + name)
-        self.window.set_size_request(600,600)
-        self.window.set_position(gtk.WIN_POS_CENTER)
-        self.window.connect("destroy", self.close)
-        # item part
-        mainBox = gtk.VBox(False, 5)
-        self.msgList, self.msgWindow = self.buildUpTxtArea()
-        self.button = gtk.Button("Send")
-        self.box1 = gtk.HBox(False, 5)
-        self.msgText = gtk.Entry()
-        self.msgWindow.set_size_request(580, 530)
-        self.box1.set_size_request(580, 50)
-        self.button.set_size_request(120, 30)
-        self.msgText.set_size_request(460, 40)        
-        # attributes part
-        self.button.connect("clicked", self.sendMsg, self.msgText)
-        self.msgText.connect("activate", self.sendMsg, self.msgText)
-        self.box1.add(self.msgText)
-        self.box1.add(self.button)
-        mainBox.add(self.msgWindow)
-        mainBox.add(self.box1)
-        self.window.add(mainBox)
-
-    def onOrNot(self):
-        return self.on
-
-    def buildUpTxtArea(self):
-        area = gtk.TextView()
-        area.set_editable(False)
-        swindow = gtk.ScrolledWindow()
-        swindow.add(area)
-        buf = area.get_buffer()
-        buf.create_mark("end", buf.get_end_iter(), False)
-        return area, swindow
-
-    def insertOneMsg(self, txtArea, msg, name):
-        if msg == "" or msg.strip() == "":
-            return
-        msg = get_time() + " " + name + ": " + msg
-        buf = txtArea.get_buffer()
-        mark = buf.get_mark("end")
-        itr = buf.get_iter_at_mark(mark)
-        buf.insert(itr, "\n")
-        buf.insert(itr, msg)
-        txtArea.scroll_mark_onscreen(mark)
-
-    def getMsg(self, msg):
-        self.insertOneMsg(self.msgList, msg, self.name)
-
-    def sendMsg(self, widget, data):
-        msg = data.get_text()
-        data.set_text("")
-        self.parent.sendChat(json.dumps({
-                                    'type': 'chat',
-                                    'from': self.parent.username,
-                                    'to': self.name,
-                                    'msg': msg,
-                             }))
-        self.insertOneMsg(self.msgList, msg, self.parent.username)
-
-    def show(self):
-        try: 
-            self.on = True
-            self.window.show_all()
-            gtk.main()
-        except:
-            self.close(None)
-
-    def close(self, widget, data = None):
-        self.on = False
-        gtk.main_quit()
+def replaceYanWenZi(s):
+    s = s.replace(r"\happy", r" (*ﾟ∀ﾟ*) ")
+    s = s.replace(r"\enhen", r" (`・ω・´) ")
+    s = s.replace(r"\nani", r" Σ(*ﾟдﾟﾉ)ﾉ ")
+    s = s.replace(r"\comeon", r" ლ(・´ｪ`・ლ) ")
+    s = s.replace(r"\fuck", r" (／‵Д′)／~ ╧╧ ")
+    return s
 
 class ChatClientWindow(Tkinter.Frame):
     def __init__(self, parent, sock, user_key, username):
         Tkinter.Frame.__init__(self, parent)
+        self.tp = "msg"
+        self.to = None
         self.parent = parent
         self.s = sock
         self.number = 0;
-        self.chatWindow = {}
         self.user_key = user_key  # 用户标识符，供服务器验证客户端的身份
         self.username = username
         self.uList = {}
@@ -117,6 +42,12 @@ class ChatClientWindow(Tkinter.Frame):
         self.bind('<Destroy>', lambda e: self.stop_running())
         self.recieve_thread = threading.Thread(None, lambda: self.receiveMsg())
         self.recieve_thread.start()  # 启动监听线程
+        time.sleep(1)
+        self.s.send(json.dumps({
+                                'type': 'msgs',
+                                'user_key': self.user_key,
+                                'username': self.username,
+        }))
 
     def stop_running(self):
         self.running = False
@@ -155,6 +86,8 @@ class ChatClientWindow(Tkinter.Frame):
         try:
             if msg.index(':') == 0:
                 if msg.index('ul') == 1:
+                    if self.tp != "msg":
+                        raise ValueError
                     try:
                         self.s.send(json.dumps({
                             'type': 'usrList',
@@ -167,38 +100,52 @@ class ChatClientWindow(Tkinter.Frame):
                 if msg.index(':') == 0:
                     if msg.index('chat') == 1:
                         uname = msg.strip().split(' ')[1]
-                        if not uname in self.uList:
-                            tkMessageBox.showerror('Error', 'Error occured!\n' + 'No such user!')
-                            self.msg_str.set('')
-                            return
                         if uname == self.username:
                             tkMessageBox.showerror('Error', 'Error occured!\n' + 'Cannot talk to yourself!')
                             self.msg_str.set('')
                             return
                         else:
-                            self.sendChat(json.dumps({
-                                    'type': 'chat',
-                                    'from': self.username,
-                                    'to': uname,
-                                    'msg': ' ',
-                            }))
-                            if uname not in self.chatWindow:
-                                self.chatWindow[uname] = chatPage(self, uname)
-                            if not self.chatWindow[uname].on:
-                                self.chatWindow[uname] = chatPage(self, uname)
-                                tmp = threading.Thread(None, lambda: self.chatWindow[uname].show())
-                                tmp.start()                                                   
+                            self.changeMod(uname)                                                   
             except ValueError:
                 try:
-                    self.s.send(json.dumps({
-                        'type': 'msg',
-                        'msg': msg,
-                        'user_key': self.user_key,
-                    }))
-                except socket.error as e:
-                    tkMessageBox.showerror('Error', 'Error occured!\n' + str(e))
+                    if msg.index(':') == 0:
+                        if msg.index('return') == 1:
+                             if self.tp == "chat":
+                                 self.changeMod()
+                             else:
+                                 raise ValueError
+                except ValueError:               
+                    try:
+                        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        self.s.send(json.dumps({
+                            'type': self.tp,
+                            'msg': msg,
+                            'user_key': self.user_key,
+                            'from': self.username,
+                            'to': self.to,
+                            'time': now
+                        }))
+                        if self.tp == "chat":
+                            log = '[{}] [I said]: {}\n'.format(now,
+                                                               replaceYanWenZi(msg).encode('utf8'))
+                            self.log.insert('end', log)
+                    except socket.error as e:
+                        tkMessageBox.showerror('Error', 'Error occured!\n' + str(e))
 
         self.msg_str.set('')
+
+    def changeMod(self, name = None):
+        if name == None:
+            self.tp = "msg"
+            self.to = None
+        else:
+            self.tp = "chat"
+            self.to = name
+        self.clearScreen()
+    
+    def clearScreen(self):
+        self.log.delete('0.0', 'end')
+        
 
     def receiveMsg(self):
         while self.running:
@@ -229,21 +176,31 @@ class ChatClientWindow(Tkinter.Frame):
                         elif obj['errno'] == 3:
                             fr = obj['from']
                             msg = obj['msg']
-                            if fr not in self.chatWindow:
-                                self.chatWindow[fr] = chatPage(self, fr)
-                            if not self.chatWindow[fr].on:
-                                self.chatWindow[fr] = chatPage(self, fr)
-                                tmp = threading.Thread(None, lambda: self.chatWindow[fr].show())
-                                tmp.start()
-                            while not self.chatWindow[fr].on:
-                                pass
-                            self.chatWindow[fr].getMsg(msg)
+                            log = '[{}] [{} from {}]: {}\n'.format(now,
+                                                               "Private Chat",
+                                                               obj['from'].encode('utf8'),
+                                                               replaceYanWenZi(obj['msg']).encode('utf8'))
+                            self.log.insert('end', log)
+                        elif obj['errno'] == 4:
+                            l = eval(obj['msgs'])
+                            if len(l):
+                                for item in l:
+                                    fr = item['from']
+                                    msg = item['msg']
+                                    time = item['time']
+                                    log = '[{} by {} at {}]: {}\n'.format(  "Message Left",
+                                                                            fr.encode('utf8'),
+                                                                            time.encode('utf8'),
+                                                                            replaceYanWenZi(msg).encode('utf8'))
+                                    self.log.insert('end', log)
                     except KeyError:
+                        if self.tp == "chat":
+                            continue
                         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')                                
                         log = '[{}] [{} from {}]: {}\n'.format(now,
                                                                "Broadcast",
                                                                obj['user'].encode('utf8'),
-                                                               obj['msg'].encode('utf8'))
+                                                               replaceYanWenZi(obj['msg']).encode('utf8'))
                         self.log.insert('end', log)
                 else:
                     tkMessageBox.showerror('Error', 'Connection closed.')

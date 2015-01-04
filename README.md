@@ -7,9 +7,8 @@ Homework of computer network
 The structure of the chat system.
 
 ####Functional Structure
-* Client\_Vertion1  The version without private chat UI
-* Client\_Version2  The version with private chat UI
-* Server            The version which can support both version of client
+* Client\_Version2  The version with private chat UI and two added function
+* Server            The version which can support any version of client
 
 ###Environment
 The test environment is Ubuntu LTS12.04.
@@ -20,7 +19,6 @@ Use the below command to setup the environment.
 
 ````bash
 $ sudo apt-get update
-$ sudo apt-get install python-gtk\*
 $ sudo apt-get install python-tk
 ````
 
@@ -28,25 +26,18 @@ $ sudo apt-get install python-tk
 
 ####Server
 ````bash
-$ python server.py
+$ python ./Server/server.py
 ````
 
-####Client Version1
+####Client
 ````bash
-$ python client.py
+$ python ./Client_Version2/client.py
 ````
-
-As in the client UI view, input _":ul"_ to get the user list, and _":chat xxx
-sth."_ to send sth. to xxx. Type something else to broadcast it.
-
-####Client Version2
-````bash
-$ python client.py
-````
-
-As in the client UI view, type something to broadcast it.
-Input _":ul"_ to get the user list, and _":chat xxx"_ to open the chat window.
-And type anything in the chat window to send.
+####Function
+* :ul                Get online user list
+* :chat xxx          Change to private chat with xxx
+* :return            Return to broadcast mode(_Only when private chat_)
+* \\_facemoodcode_   Will be replaced by facemood.
 
 ###Notice
 These two version are both not stable. As the socket of private chat is
@@ -56,7 +47,6 @@ know and I'll make some improvement.
 
 ###Technique Useage
 * python2.7
-* pyGtk
 * Tkinter
 * socket(select)
 
