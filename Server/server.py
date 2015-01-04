@@ -199,7 +199,7 @@ class ServerUI(Tkinter.Tk):
         self.init_ui()
 
     def init_ui(self):
-        self.title('Chat - Server')
+        self.title('MiLiao - Server')
 
         self.log = ScrolledText(self)
         self.log.grid(column=0, row=0, sticky='NSWE')

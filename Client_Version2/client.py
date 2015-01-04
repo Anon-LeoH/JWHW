@@ -54,7 +54,7 @@ class ChatClientWindow(Tkinter.Frame):
         self.s.close()
 
     def init_ui(self):
-        self.parent.title('Chat - %s' % self.username)
+        self.parent.title('MiLiao - %s' % self.username)
 
         self.log = ScrolledText(self)
         self.log.grid(column=0, row=0, columnspan=2, sticky='NSEW')
